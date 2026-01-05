@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGram</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Сайдбар */
+        .sidebar {
+            width: 400px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #0088cc;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #0088cc;
+            font-size: 20px;
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .user-status {
+            font-size: 12px;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .online { background: #4caf50; }
+        .offline { background: #9e9e9e; }
+
+        .sidebar-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.3s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Поиск и табы */
+        .search-container {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #f5f5f5;
+            border-radius: 20px;
+            padding: 10px 15px;
+        }
+
+        .search-box i {
+            color: #999;
+            margin-right: 10px;
+        }
+
+        .search-box input {
+            flex: 1;
+            border: none;
+            background: none;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .sidebar-tab.active {
+            color: #0088cc;
+        }
+
+        .sidebar-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #0088cc;
+        }
+
+        /* Списки */
+        .lists-container {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .list {
+            display: none;
+        }
+
+        .list.active {
+            display: block;
+        }
+
+        .chat-item, .contact-item, .group-item, .channel-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .chat-item:hover, .contact-item:hover, .group-item:hover, .channel-item:hover {
+            background: #f5f5f5;
+        }
+
+        .chat-item.active {
+            background: #e3f2fd;
+        }
+
+        .item-avatar {
+            position: relative;
+            margin-right: 15px;
+        }
+
+        .avatar-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .avatar-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #0088cc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .online-status {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .item-preview {
+            font-size: 14px;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .unread-count {
+            background: #0088cc;
+            color: white;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        /* Основной чат */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-title {
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .chat-type {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+        }
+
+        .chat-members {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .chat-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #efeae2;
+            background-image: url('https://web.telegram.org/a/chat-bg-pattern-light.png');
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 10px;
+            position: relative;
+            animation: messageAppear 0.3s ease-out;
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-outgoing {
+            align-self: flex-end;
+            background: #d9fdd3;
+            border-radius: 10px 10px 0 10px;
+        }
+
+        .message-incoming {
+            align-self: flex-start;
+            background: white;
+            border-radius: 10px 10px 10px 0;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #0088cc;
+        }
+
+        .message-text {
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999;
+            text-align: right;
+        }
+
+        .message-incoming .message-time {
+            text-align: left;
+        }
+
+        .message-date {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .message-date::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: #e0e0e0;
+            z-index: 1;
+        }
+
+        .message-date span {
+            background: #efeae2;
+            padding: 0 10px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .chat-input {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .input-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: #f0f2f5;
+            border-radius: 25px;
+            padding: 5px 15px;
+        }
+
+        .input-container input {
+            flex: 1;
+            border: none;
+            background: none;
+            outline: none;
+            font-size: 16px;
+            padding: 12px 5px;
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .send-btn {
+            background: #0088cc;
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.3s;
+        }
+
+        .send-btn:hover {
+            background: #0077b3;
+        }
+
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            animation: modalAppear 0.3s ease-out;
+        }
+
+        @keyframes modalAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            padding: 20px;
+            background: #0088cc;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #0088cc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0077b3;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: #0088cc;
+            outline: none;
+        }
+
+        .user-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .user-select-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .user-select-item:hover {
+            background: #f5f5f5;
+        }
+
+        .user-select-item input {
+            margin-right: 10px;
+        }
+
+        .user-select-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: absolute;
+                z-index: 100;
+                height: 100%;
+                transition: transform 0.3s;
+            }
+            
+            .sidebar.hidden {
+                transform: translateX(-100%);
+            }
+            
+            .chat-container {
+                width: 100%;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Сайдбар -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <div class="user-name" id="user-name">Загрузка...</div>
+                        <div class="user-status">
+                            <span class="status-indicator online" id="user-status-indicator"></span>
+                            <span id="user-status-text">онлайн</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-controls">
+                    <button class="icon-btn" onclick="showNewChatModal()">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="icon-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Поиск по контактам и сообщениям...">
+                </div>
+            </div>
+
+            <div class="sidebar-tabs">
+                <div class="sidebar-tab active" onclick="showList('chats')">Чаты</div>
+                <div class="sidebar-tab" onclick="showList('contacts')">Контакты</div>
+                <div class="sidebar-tab" onclick="showList('groups')">Группы</div>
+                <div class="sidebar-tab" onclick="showList('channels')">Каналы</div>
+            </div>
+
+            <div class="lists-container">
+                <!-- Список чатов -->
+                <div id="chats-list" class="list active"></div>
+                
+                <!-- Список контактов -->
+                <div id="contacts-list" class="list"></div>
+                
+                <!-- Список групп -->
+                <div id="groups-list" class="list"></div>
+                
+                <!-- Список каналов -->
+                <div id="channels-list" class="list"></div>
+            </div>
+        </div>
+
+        <!-- Основной чат -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="chat-info">
+                    <div id="chat-avatar" class="item-avatar">
+                        <div class="avatar-icon">
+                            <i class="fas fa-user-group"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="chat-title" id="chat-title">WebGram</div>
+                        <div class="chat-members" id="chat-members">Добро пожаловать в WebGram!</div>
+                    </div>
+                </div>
+                <div class="chat-controls">
+                    <button class="icon-btn" onclick="showChatInfo()">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chat-messages">
+                <!-- Сообщения будут загружаться здесь -->
+            </div>
+
+            <div class="chat-input">
+                <div class="input-container">
+                    <button class="icon-btn" onclick="attachFile()">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <input type="text" id="message-input" placeholder="Введите сообщение..." onkeypress="handleKeyPress(event)">
+                    <button class="icon-btn" onclick="showEmojiPicker()">
+                        <i class="far fa-smile"></i>
+                    </button>
+                </div>
+                <button class="send-btn" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно нового чата -->
+    <div id="new-chat-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Новый чат</h3>
+                <button class="modal-close" onclick="hideModal('new-chat-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Выберите тип чата:</label>
+                    <select id="chat-type-select" onchange="toggleChatTypeFields()">
+                        <option value="private">Личный чат</option>
+                        <option value="group">Группа</option>
+                        <option value="channel">Канал</option>
+                    </select>
+                </div>
+                
+                <div id="private-chat-fields">
+                    <div class="form-group">
+                        <label>Найти пользователя по номеру или никнейму:</label>
+                        <input type="text" id="search-user-input" placeholder="Введите номер или username" oninput="searchUsers()">
+                        <div id="search-results" class="user-list"></
