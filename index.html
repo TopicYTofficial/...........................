@@ -164,17 +164,6 @@
             display: block;
         }
 
-        .status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .online { background: #4caf50; }
-        .offline { background: #9e9e9e; }
-
         @media (max-width: 480px) {
             .container {
                 border-radius: 0;
@@ -186,7 +175,7 @@
     <div class="container">
         <div class="header">
             <h1>WebGram</h1>
-            <p>Общайтесь в реальном времени</p>
+            <p>Общайтесь локально</p>
         </div>
         
         <div class="form-container">
@@ -206,8 +195,6 @@
                             <option value="+7">+7 (RU)</option>
                             <option value="+1">+1 (US)</option>
                             <option value="+380">+380 (UA)</option>
-                            <option value="+375">+375 (BY)</option>
-                            <option value="+77">+77 (KZ)</option>
                         </select>
                         <input type="tel" id="login-phone" placeholder="9123456789">
                     </div>
@@ -231,8 +218,6 @@
                             <option value="+7">+7 (RU)</option>
                             <option value="+1">+1 (US)</option>
                             <option value="+380">+380 (UA)</option>
-                            <option value="+375">+375 (BY)</option>
-                            <option value="+77">+77 (KZ)</option>
                         </select>
                         <input type="tel" id="register-phone" placeholder="9123456789">
                     </div>
@@ -264,19 +249,23 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
-    
-    <script src="firebase-config.js"></script>
     <script>
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        // Инициализация базы данных в localStorage
+        function initDatabase() {
+            if (!localStorage.getItem('webgram_users')) {
+                localStorage.setItem('webgram_users', JSON.stringify({}));
+            }
+            if (!localStorage.getItem('webgram_chats')) {
+                localStorage.setItem('webgram_chats', JSON.stringify({}));
+            }
+            if (!localStorage.getItem('webgram_messages')) {
+                localStorage.setItem('webgram_messages', JSON.stringify({}));
+            }
+        }
+        
+        initDatabase();
         
         function showTab(tabName) {
-            // Обновляем табы
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.form').forEach(form => form.classList.remove('active'));
             
@@ -288,7 +277,6 @@
                 document.getElementById('register-form').classList.add('active');
             }
             
-            // Очищаем ошибки
             hideError();
         }
         
@@ -302,7 +290,15 @@
             document.getElementById('error-message').classList.remove('show');
         }
         
-        async function register() {
+        function generateUserId() {
+            return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        function generateChatId() {
+            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        function register() {
             const country = document.getElementById('register-country').value;
             const phone = document.getElementById('register-phone').value;
             const username = document.getElementById('register-username').value.trim();
@@ -326,49 +322,57 @@
                 return;
             }
             
+            if (username.length < 3) {
+                showError('Никнейм должен быть не менее 3 символов');
+                return;
+            }
+            
             const phoneNumber = country + phone;
             
-            try {
-                // Создаем пользователя в Firebase Authentication
-                const userCredential = await auth.createUserWithEmailAndPassword(
-                    phoneNumber + '@webgram.com', // Используем номер как email
-                    password
-                );
-                
-                const user = userCredential.user;
-                
-                // Создаем документ пользователя в Firestore
-                await db.collection('users').doc(user.uid).set({
-                    uid: user.uid,
-                    phone: phoneNumber,
-                    username: username.toLowerCase(),
-                    fullname: fullname,
-                    displayName: fullname.split(' ')[0], // Используем первое имя для отображения
-                    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullname)}&background=0088cc&color=fff`,
-                    status: 'online',
-                    lastSeen: new Date().toISOString(),
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    isOnline: true,
-                    contacts: [],
-                    chats: []
-                });
-                
-                // Перенаправляем в основное приложение
-                window.location.href = 'main.html';
-                
-            } catch (error) {
-                console.error('Ошибка регистрации:', error);
-                if (error.code === 'auth/email-already-in-use') {
+            // Проверяем существующих пользователей
+            const users = JSON.parse(localStorage.getItem('webgram_users'));
+            
+            // Проверка на уникальность номера
+            for (const userId in users) {
+                if (users[userId].phone === phoneNumber) {
                     showError('Этот номер уже зарегистрирован');
-                } else if (error.code === 'auth/weak-password') {
-                    showError('Пароль слишком простой');
-                } else {
-                    showError('Ошибка регистрации: ' + error.message);
+                    return;
+                }
+                if (users[userId].username === username.toLowerCase()) {
+                    showError('Этот никнейм уже занят');
+                    return;
                 }
             }
+            
+            // Создаем нового пользователя
+            const userId = generateUserId();
+            const userData = {
+                id: userId,
+                phone: phoneNumber,
+                username: username.toLowerCase(),
+                fullname: fullname,
+                displayName: fullname.split(' ')[0],
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullname)}&background=0088cc&color=fff`,
+                status: 'online',
+                isOnline: true,
+                lastSeen: new Date().toISOString(),
+                password: password, // В реальном приложении нужно хешировать!
+                contacts: [],
+                chats: [],
+                createdAt: new Date().toISOString()
+            };
+            
+            users[userId] = userData;
+            localStorage.setItem('webgram_users', JSON.stringify(users));
+            
+            // Автоматически входим
+            localStorage.setItem('webgram_current_user', JSON.stringify(userData));
+            
+            // Перенаправляем в главное приложение
+            window.location.href = 'main.html';
         }
         
-        async function login() {
+        function login() {
             const country = document.getElementById('login-country').value;
             const phone = document.getElementById('login-phone').value;
             const password = document.getElementById('login-password').value;
@@ -379,38 +383,40 @@
             }
             
             const phoneNumber = country + phone;
+            const users = JSON.parse(localStorage.getItem('webgram_users'));
             
-            try {
-                await auth.signInWithEmailAndPassword(
-                    phoneNumber + '@webgram.com',
-                    password
-                );
-                
-                // Обновляем статус пользователя
-                const user = auth.currentUser;
-                if (user) {
-                    await db.collection('users').doc(user.uid).update({
-                        status: 'online',
-                        isOnline: true,
-                        lastSeen: new Date().toISOString()
-                    });
+            // Ищем пользователя
+            let foundUser = null;
+            for (const userId in users) {
+                const user = users[userId];
+                if (user.phone === phoneNumber && user.password === password) {
+                    foundUser = user;
+                    break;
                 }
+            }
+            
+            if (foundUser) {
+                // Обновляем статус
+                foundUser.status = 'online';
+                foundUser.isOnline = true;
+                foundUser.lastSeen = new Date().toISOString();
+                users[foundUser.id] = foundUser;
+                localStorage.setItem('webgram_users', JSON.stringify(users));
                 
+                // Сохраняем текущего пользователя
+                localStorage.setItem('webgram_current_user', JSON.stringify(foundUser));
+                
+                // Перенаправляем
                 window.location.href = 'main.html';
-                
-            } catch (error) {
-                console.error('Ошибка входа:', error);
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    showError('Неверный номер телефона или пароль');
-                } else {
-                    showError('Ошибка входа: ' + error.message);
-                }
+            } else {
+                showError('Неверный номер телефона или пароль');
             }
         }
         
-        // Автоматический вход при загрузке
-        auth.onAuthStateChanged(user => {
-            if (user) {
+        // Автоматический вход если уже авторизован
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = localStorage.getItem('webgram_current_user');
+            if (currentUser) {
                 window.location.href = 'main.html';
             }
         });
