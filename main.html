@@ -605,10 +605,6 @@
             background: #f5f5f5;
         }
 
-        .user-select-item input {
-            margin-right: 10px;
-        }
-
         .user-select-info {
             display: flex;
             align-items: center;
@@ -664,13 +660,16 @@
                     <button class="icon-btn" onclick="toggleSidebar()">
                         <i class="fas fa-bars"></i>
                     </button>
+                    <button class="icon-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
                 </div>
             </div>
 
             <div class="search-container">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="search-input" placeholder="Поиск по контактам и сообщениям...">
+                    <input type="text" id="search-input" placeholder="Поиск по контактам и сообщениям..." oninput="searchAll()">
                 </div>
             </div>
 
@@ -758,5 +757,4 @@
                 <div id="private-chat-fields">
                     <div class="form-group">
                         <label>Найти пользователя по номеру или никнейму:</label>
-                        <input type="text" id="search-user-input" placeholder="Введите номер или username" oninput="searchUsers()">
-                        <div id="search-results" class="user-list"></
+                        <input type="text" id="search-user-input" placeholder="Введите номер или user
